@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventario Punto de Venta</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    input, button { margin: 5px 5px 5px 0; padding: 5px; }
+    td button { padding: 2px 5px; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>Inventario Punto de Venta</h1>
+
+  <h2>Agregar / Modificar Producto</h2>
+  <input id="id" placeholder="ID">
+  <input id="nombre" placeholder="Nombre">
+  <input id="cantidad" type="number" placeholder="Cantidad">
+  <input id="compra" type="number" placeholder="Precio Compra">
+  <input id="venta" type="number" placeholder="Precio Venta">
+  <button onclick="agregarModificar()">Guardar Producto</button>
+
+  <h2>Inventario</h2>
+  <div id="inventario"></div>
+
+  <h2>Registrar Venta</h2>
+  <input id="ventaId" placeholder="ID Producto">
+  <input id="ventaCantidad" type="number" placeholder="Cantidad">
+  <button onclick="vender()">Vender</button>
+
+  <h2>Ventas</h2>
+  <button onclick="mostrarVentas()">Mostrar Ventas</button>
+  <div id="ventas"></div>
+
+  <script>
+    class Producto {
+      constructor(id, nombre, cantidad, precioCompra, precioVenta) {
+        this.id = id;
+        this.nombre = nombre;
+        this.cantidad = cantidad;
+        this.precioCompra = precioCompra;
+        this.precioVenta = precioVenta;
+      }
+    }
+
+    const INVENTARIO_KEY = 'inventario';
+    const VENTAS_KEY = 'ventas';
+
+    function obtenerInventario() {
+      return JSON.parse(localStorage.getItem(INVENTARIO_KEY)) || [];
+    }
+
+    function guardarInventario(inventario) {
+      localStorage.setItem(INVENTARIO_KEY, JSON.stringify(inventario));
+    }
+
+    function registrarVenta(producto, cantidad) {
+      const ventas = JSON.parse(localStorage.getItem(VENTAS_KEY)) || [];
+      const total = cantidad * producto.precioVenta;
+      ventas.push({
+        id: producto.id,
+        nombre: producto.nombre,
+        cantidad,
+        precioUnitario: producto.precioVenta,
+        total
+      });
+      localStorage.setItem(VENTAS_KEY, JSON.stringify(ventas));
+    }
+
+    function agregarModificar() {
+      const id = document.getElementById('id').value;
+      const nombre = document.getElementById('nombre').value;
+      const cantidad = parseInt(document.getElementById('cantidad').value);
+      const compra = parseFloat(document.getElementById('compra').value);
+      const venta = parseFloat(document.getElementById('venta').value);
+      if (!id || !nombre || isNaN(cantidad) || isNaN(compra) || isNaN(venta)) {
+        alert('Completa todos los campos');
+        return;
+      }
+      let inventario = obtenerInventario();
+      const idx = inventario.findIndex(p => p.id === id);
+      if (idx !== -1) {
+        inventario[idx] = new Producto(id, nombre, cantidad, compra, venta);
+        alert('Producto modificado');
+      } else {
+        inventario.push(new Producto(id, nombre, cantidad, compra, venta));
+        alert('Producto agregado');
+      }
+      guardarInventario(inventario);
+      mostrarInventario();
+    }
+
+    function eliminarProductoPorId(id) {
+      let inventario = obtenerInventario();
+      inventario = inventario.filter(p => p.id !== id);
+      guardarInventario(inventario);
+      mostrarInventario();
+      alert('Producto eliminado');
+    }
+
+    function mostrarInventario() {
+      const inventario = obtenerInventario();
+      let html = '<table><tr><th>ID</th><th>Nombre</th><th>Cantidad</th><th>Compra</th><th>Venta</th><th>Inversión</th><th>Valor Venta</th><th>Ganancia</th><th>Acción</th></tr>';
+      let totalInversion = 0, totalVenta = 0, totalGanancia = 0;
+      inventario.forEach(p => {
+        const inv = p.cantidad * p.precioCompra;
+        const val = p.cantidad * p.precioVenta;
+        const gan = val - inv;
+        totalInversion += inv;
+        totalVenta += val;
+        totalGanancia += gan;
+        html += `<tr><td>${p.id}</td><td>${p.nombre}</td><td>${p.cantidad}</td><td>$${p.precioCompra.toFixed(2)}</td><td>$${p.precioVenta.toFixed(2)}</td><td>$${inv.toFixed(2)}</td><td>$${val.toFixed(2)}</td><td>$${gan.toFixed(2)}</td><td><button onclick='eliminarProductoPorId("${p.id}")'>Eliminar</button></td></tr>`;
+      });
+      html += `</table><p>Total inversión: $${totalInversion.toFixed(2)} | Total venta: $${totalVenta.toFixed(2)} | Ganancia: $${totalGanancia.toFixed(2)}</p>`;
+      document.getElementById('inventario').innerHTML = html;
+    }
+
+    function vender() {
+      const id = document.getElementById('ventaId').value;
+      const cantidad = parseInt(document.getElementById('ventaCantidad').value);
+      const inventario = obtenerInventario();
+      const p = inventario.find(x => x.id === id);
+      if (!p) return alert('Producto no encontrado');
+      if (p.cantidad < cantidad) return alert('No hay suficiente inventario');
+      p.cantidad -= cantidad;
+      guardarInventario(inventario);
+      registrarVenta(p, cantidad);
+      mostrarInventario();
+      alert('Venta registrada');
+    }
+
+    function mostrarVentas() {
+      const ventas = JSON.parse(localStorage.getItem(VENTAS_KEY)) || [];
+      let html = '<table><tr><th>ID</th><th>Nombre</th><th>Cantidad</th><th>P. Unitario</th><th>Total</th></tr>';
+      let total = 0;
+      ventas.forEach(v => {
+        total += v.total;
+        html += `<tr><td>${v.id}</td><td>${v.nombre}</td><td>${v.cantidad}</td><td>$${v.precioUnitario.toFixed(2)}</td><td>$${v.total.toFixed(2)}</td></tr>`;
+      });
+      html += `</table><p>Total vendido: $${total.toFixed(2)}</p>`;
+      document.getElementById('ventas').innerHTML = html;
+    }
+
+    window.onload = mostrarInventario;
+  </script>
+</body>
+</html>
