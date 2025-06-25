@@ -14,14 +14,14 @@
   </style>
 </head>
 <body>
-  <h1>Inventario Punto de Venta</h1>
+    <h1>INVENTARIO</h1>
 
   <h2>Agregar / Modificar Producto</h2>
   <input id="id" placeholder="ID">
   <input id="nombre" placeholder="Nombre">
   <input id="cantidad" type="number" placeholder="Cantidad">
-  <input id="compra" type="number" placeholder="Precio Compra">
-  <input id="venta" type="number" placeholder="Precio Venta">
+  <input id="compra" type="number" placeholder="Precio de Compra">
+  <input id="venta" type="number" placeholder="Precio de Venta">
   <button onclick="agregarModificar()">Guardar Producto</button>
 
   <h2>Inventario</h2>
@@ -133,17 +133,33 @@
       alert('Venta registrada');
     }
 
-    function mostrarVentas() {
-      const ventas = JSON.parse(localStorage.getItem(VENTAS_KEY)) || [];
-      let html = '<table><tr><th>ID</th><th>Nombre</th><th>Cantidad</th><th>P. Unitario</th><th>Total</th></tr>';
-      let total = 0;
-      ventas.forEach(v => {
-        total += v.total;
-        html += `<tr><td>${v.id}</td><td>${v.nombre}</td><td>${v.cantidad}</td><td>$${v.precioUnitario.toFixed(2)}</td><td>$${v.total.toFixed(2)}</td></tr>`;
-      });
-      html += `</table><p>Total vendido: $${total.toFixed(2)}</p>`;
-      document.getElementById('ventas').innerHTML = html;
-    }
+function mostrarVentas() {
+  const ventas = JSON.parse(localStorage.getItem(VENTAS_KEY)) || [];
+  const inventario = obtenerInventario();
+  let html = '<table><tr><th>ID</th><th>Nombre</th><th>Cantidad</th><th>P. Unitario</th><th>Total</th><th>Ganancia</th></tr>';
+  let total = 0;
+  let gananciaTotal = 0;
+
+  ventas.forEach(v => {
+    const p = inventario.find(x => x.id === v.id);
+    const precioCompra = p ? p.precioCompra : 0;
+    const ganancia = (v.precioUnitario - precioCompra) * v.cantidad;
+    total += v.total;
+    gananciaTotal += ganancia;
+
+    html += `<tr>
+      <td>${v.id}</td>
+      <td>${v.nombre}</td>
+      <td>${v.cantidad}</td>
+      <td>$${v.precioUnitario.toFixed(2)}</td>
+      <td>$${v.total.toFixed(2)}</td>
+      <td>$${ganancia.toFixed(2)}</td>
+    </tr>`;
+  });
+
+  html += `</table><p>Total vendido: $${total.toFixed(2)} | Ganancia total: $${gananciaTotal.toFixed(2)}</p>`;
+  document.getElementById('ventas').innerHTML = html;
+}
 
     window.onload = mostrarInventario;
   </script>
